@@ -1,0 +1,23 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+build/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store

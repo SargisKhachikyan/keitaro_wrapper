@@ -1,0 +1,14 @@
+import 'package:flutter/material.dart';
+
+import 'package:frontend/offers/widgets/offers_header.dart';
+
+class OffersPage extends StatelessWidget {
+  const OffersPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: OffersHeader(),
+    );
+  }
+}
