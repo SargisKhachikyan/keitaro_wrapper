@@ -9,10 +9,12 @@ class AppLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final sidebarWidth = width < 900 ? 200.0 : 240.0;
     return Scaffold(
       body: Row(
         children: [
-          const Sidebar(),
+          SizedBox(width: sidebarWidth, child: const Sidebar()),
           Expanded(child: child),
         ],
       ),
