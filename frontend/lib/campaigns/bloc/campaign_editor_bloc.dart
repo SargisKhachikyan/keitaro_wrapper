@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../models/stream.dart';
 import '../repository/campaigns_repository.dart';
 import 'campaign_editor_event.dart';
 import 'campaign_editor_state.dart';
@@ -39,7 +40,7 @@ class CampaignEditorBloc
           options: results[1] as dynamic,
           streams: results[2] as dynamic,
           status: CampaignEditorStatus.loaded,
-          hasUnsavedChanges: false,
+          dirtyStreamIds: const {},
         ),
       );
     } catch (error) {
@@ -68,7 +69,7 @@ class CampaignEditorBloc
       state.copyWith(
         streams: streams,
         status: CampaignEditorStatus.loaded,
-        hasUnsavedChanges: true,
+        dirtyStreamIds: {...state.dirtyStreamIds, event.streamId},
       ),
     );
   }
@@ -89,7 +90,7 @@ class CampaignEditorBloc
       state.copyWith(
         streams: streams,
         status: CampaignEditorStatus.loaded,
-        hasUnsavedChanges: true,
+        dirtyStreamIds: {...state.dirtyStreamIds, event.streamId},
       ),
     );
   }
@@ -110,7 +111,7 @@ class CampaignEditorBloc
       state.copyWith(
         streams: streams,
         status: CampaignEditorStatus.loaded,
-        hasUnsavedChanges: true,
+        dirtyStreamIds: {...state.dirtyStreamIds, event.streamId},
       ),
     );
   }
@@ -126,11 +127,19 @@ class CampaignEditorBloc
     emit(state.copyWith(status: CampaignEditorStatus.saving));
     try {
       await _repository.saveStreamOffers(event.streamId, stream.offers);
+      final currentStream = state.streams
+          .where((item) => item.id == event.streamId)
+          .firstOrNull;
+      final dirtyStreamIds = {...state.dirtyStreamIds};
+      if (currentStream != null &&
+          _sameOffers(currentStream.offers, stream.offers)) {
+        dirtyStreamIds.remove(event.streamId);
+      }
       emit(
         state.copyWith(
           status: CampaignEditorStatus.success,
           message: 'Stream ${stream.id} offers saved successfully.',
-          hasUnsavedChanges: false,
+          dirtyStreamIds: dirtyStreamIds,
         ),
       );
     } catch (error) {
@@ -141,5 +150,17 @@ class CampaignEditorBloc
         ),
       );
     }
+  }
+
+  bool _sameOffers(List<StreamOffer> left, List<StreamOffer> right) {
+    if (left.length != right.length) return false;
+    for (var index = 0; index < left.length; index++) {
+      final a = left[index];
+      final b = right[index];
+      if (a.offerId != b.offerId || a.share != b.share || a.state != b.state) {
+        return false;
+      }
+    }
+    return true;
   }
 }

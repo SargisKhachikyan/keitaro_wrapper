@@ -11,7 +11,7 @@ class CampaignEditorState extends Equatable {
     this.streams = const [],
     this.status = CampaignEditorStatus.initial,
     this.message,
-    this.hasUnsavedChanges = false,
+    this.dirtyStreamIds = const {},
   });
 
   final Campaign? campaign;
@@ -19,7 +19,9 @@ class CampaignEditorState extends Equatable {
   final List<CampaignStream> streams;
   final CampaignEditorStatus status;
   final String? message;
-  final bool hasUnsavedChanges;
+  final Set<int> dirtyStreamIds;
+
+  bool get hasUnsavedChanges => dirtyStreamIds.isNotEmpty;
 
   CampaignEditorState copyWith({
     Campaign? campaign,
@@ -27,7 +29,7 @@ class CampaignEditorState extends Equatable {
     List<CampaignStream>? streams,
     CampaignEditorStatus? status,
     String? message,
-    bool? hasUnsavedChanges,
+    Set<int>? dirtyStreamIds,
   }) {
     return CampaignEditorState(
       campaign: campaign ?? this.campaign,
@@ -35,7 +37,7 @@ class CampaignEditorState extends Equatable {
       streams: streams ?? this.streams,
       status: status ?? this.status,
       message: message,
-      hasUnsavedChanges: hasUnsavedChanges ?? this.hasUnsavedChanges,
+      dirtyStreamIds: dirtyStreamIds ?? this.dirtyStreamIds,
     );
   }
 
@@ -46,7 +48,7 @@ class CampaignEditorState extends Equatable {
     streams,
     status,
     message,
-    hasUnsavedChanges,
+    dirtyStreamIds,
   ];
 }
 

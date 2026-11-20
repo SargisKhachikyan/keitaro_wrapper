@@ -123,7 +123,7 @@ class _CampaignEditorView extends StatelessWidget {
       builder: (dialogContext) => AlertDialog(
         title: const Text('Discard unsaved changes'),
         content: const Text(
-          'This stream has offer changes that have not been saved. '
+          'This campaign has offer changes that have not been saved. '
           'Discard them?',
         ),
         actions: [
