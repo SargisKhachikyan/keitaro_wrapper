@@ -37,13 +37,13 @@ The application provides:
 
 ### Campaign Creation Flow
 
-When a campaign is created, the backend performs the following operations:
+The Flutter `CampaignsRepository` coordinates the following sequence of requests to FastAPI. The Backend validates each request and performs the corresponding operation through the Keitaro Admin API:
 
-1. Creates a campaign in Keitaro.
-2. Creates a redirect stream with a country filter and Google redirect.
-3. Creates a second stream containing the selected offer with a 100% share.
+1. Requests campaign creation in Keitaro.
+2. Requests a redirect stream with a country filter and Google redirect.
+3. Requests a second stream containing the selected offer with a 100% share.
 
-The campaign also receives the selected domain, group, and traffic source.
+The campaign creation request also passes the selected domain, group, and traffic source to the Backend, which sends them to Keitaro.
 
 ## Tech Stack
 
@@ -93,7 +93,6 @@ keitaro_wrapper/
 │   ├── tests/
 │   ├── .env.example
 │   ├── alembic.ini
-│   └── requirements.txt (not included)
 │
 ├── frontend/
 │   ├── lib/

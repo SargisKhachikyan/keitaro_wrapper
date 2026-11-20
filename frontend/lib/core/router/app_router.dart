@@ -1,4 +1,5 @@
 import 'package:frontend/campaigns/pages/campaigns_page.dart';
+import 'package:frontend/campaigns/navigation/campaign_editor_route_guard.dart';
 import 'package:frontend/core/layout/app_layout.dart';
 import 'package:frontend/dashboard/pages/dashboard_page.dart';
 import 'package:frontend/offers/pages/offers_page.dart';
@@ -20,6 +21,7 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '/campaigns/:campaignId',
+          onExit: campaignEditorRouteGuard.onExit,
           builder: (context, state) {
             final campaignId =
                 int.tryParse(state.pathParameters['campaignId'] ?? '') ?? 0;

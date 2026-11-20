@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../bloc/campaign_editor_bloc.dart';
 import '../bloc/campaign_editor_event.dart';
 import '../bloc/campaign_editor_state.dart';
+import '../navigation/campaign_editor_route_guard.dart';
 import '../repository/campaigns_repository.dart';
 import '../widgets/editor_header.dart';
 import '../widgets/stream_list.dart';
@@ -25,9 +26,15 @@ class CampaignEditorPage extends StatelessWidget {
       );
     }
     return BlocProvider(
-      create: (context) =>
-          CampaignEditorBloc(context.read<CampaignsRepository>(), campaignId)
-            ..add(CampaignEditorLoadRequested(campaignId)),
+      create: (context) {
+        final bloc = CampaignEditorBloc(
+          context.read<CampaignsRepository>(),
+          campaignId,
+        );
+        campaignEditorRouteGuard.register(bloc);
+        bloc.add(CampaignEditorLoadRequested(campaignId));
+        return bloc;
+      },
       child: const _CampaignEditorView(),
     );
   }
@@ -78,7 +85,7 @@ class _CampaignEditorView extends StatelessWidget {
             children: [
               EditorHeader(
                 campaign: campaign,
-                onBack: () => _navigateBack(context, state),
+                onBack: () => context.go('/campaigns'),
                 onRefresh: () => _refresh(context, state),
               ),
               const SizedBox(height: 24),
@@ -95,49 +102,18 @@ class _CampaignEditorView extends StatelessWidget {
     );
   }
 
-  Future<void> _navigateBack(
-    BuildContext context,
-    CampaignEditorState state,
-  ) async {
-    if (!await _confirmDiscard(context, state)) return;
-    if (context.mounted) context.go('/campaigns');
-  }
-
   Future<void> _refresh(BuildContext context, CampaignEditorState state) async {
-    if (!await _confirmDiscard(context, state)) return;
+    if (!await campaignEditorRouteGuard.confirmDiscard(
+      context,
+      state.hasUnsavedChanges,
+    )) {
+      return;
+    }
     if (!context.mounted) return;
     context.read<CampaignEditorBloc>().add(
       CampaignEditorLoadRequested(
         state.campaign?.id ?? context.read<CampaignEditorBloc>().campaignId,
       ),
     );
-  }
-
-  Future<bool> _confirmDiscard(
-    BuildContext context,
-    CampaignEditorState state,
-  ) async {
-    if (!state.hasUnsavedChanges) return true;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Discard unsaved changes'),
-        content: const Text(
-          'This campaign has offer changes that have not been saved. '
-          'Discard them?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Discard'),
-          ),
-        ],
-      ),
-    );
-    return confirmed == true;
   }
 }
