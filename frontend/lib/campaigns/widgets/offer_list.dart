@@ -78,6 +78,9 @@ class _OfferAddField extends StatelessWidget {
         border: OutlineInputBorder(),
         isDense: true,
       ),
+      disabledHint: choices.isEmpty
+          ? const Text('No other offers available')
+          : null,
       items: choices
           .map((item) => DropdownMenuItem(value: item, child: Text(item.name)))
           .toList(),

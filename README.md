@@ -1,8 +1,8 @@
 # Keitaro Wrapper
 
-Keitaro Wrapper is a Flutter Web and FastAPI application for managing campaigns and streams through a real Keitaro Admin API instance.
+Keitaro Wrapper is a web application built with Flutter Web and FastAPI for managing campaigns and streams through the Keitaro Admin API.
 
-The Flutter frontend sends requests to the local FastAPI backend. FastAPI communicates with Keitaro using the API key and base URL stored in the backend environment.
+The Flutter frontend communicates with the FastAPI backend. The backend handles authentication, validation, local database operations, and communication with Keitaro using credentials stored in environment variables.
 
 ## Table of Contents
 
@@ -17,27 +17,33 @@ The Flutter frontend sends requests to the local FastAPI backend. FastAPI commun
 - [API Overview](#api-overview)
 - [Architecture](#architecture)
 - [Testing](#testing)
-- [Security Notes](#security-notes)
+- [Security](#security)
 - [Current Status](#current-status)
 
 ## Project Overview
 
 The application provides:
 
-- Campaign list, search, refresh, and editor navigation.
-- Campaign creation with live Keitaro options.
-- GEO country filtering.
-- A redirect stream for matching GEO visitors.
-- A stream with a selected Keitaro offer.
-- Offer viewing, adding, removal, share editing, and saving.
-- Real domain, campaign group, traffic source, and offer options.
-- Dark dashboard and offers views.
+- Campaign listing, searching, and refreshing.
+- Campaign creation using live Keitaro options.
+- GEO-based visitor filtering.
+- Redirect streams with configurable destinations.
+- Offer streams with selected Keitaro offers.
+- Campaign editing.
+- Adding and removing offers from streams.
+- Editing offer shares.
+- Domain, campaign group, and traffic source selection.
+- Dashboard and offers pages.
 
-Created streams follow the implemented backend flow:
+### Campaign Creation Flow
 
-1. Create the campaign.
-2. Create a regular redirect stream with a country filter and Google redirect.
-3. Create a default landings stream with the selected offer and 100% share.
+When a campaign is created, the backend performs the following operations:
+
+1. Creates a campaign in Keitaro.
+2. Creates a redirect stream with a country filter and Google redirect.
+3. Creates a second stream containing the selected offer with a 100% share.
+
+The campaign also receives the selected domain, group, and traffic source.
 
 ## Tech Stack
 
@@ -61,12 +67,13 @@ Created streams follow the implemented backend flow:
 - flutter_bloc
 - Equatable
 - GoRouter
-- HTTP package
+- HTTP
 
 ### Database
 
 - SQLite
-- Database file: `backend/keitaro.db`
+- SQLAlchemy ORM
+- Alembic migrations
 
 ## Project Structure
 
@@ -74,193 +81,290 @@ Created streams follow the implemented backend flow:
 keitaro_wrapper/
 ├── backend/
 │   ├── app/
-│   │   ├── api/routes/       # FastAPI health, local, and Keitaro routes
-│   │   ├── core/             # SQLite database configuration
-│   │   ├── models/           # SQLAlchemy models
-│   │   ├── schemas/          # Pydantic request and response schemas
-│   │   └── services/         # Keitaro Admin API client
-│   ├── alembic/              # Migration environment and revisions
-│   ├── tests/                # Backend route tests
-│   ├── alembic.ini           # Alembic configuration
-│   └── .env                  # Local secrets, ignored by Git
+│   │   ├── api/
+│   │   │   └── routes/
+│   │   ├── core/
+│   │   ├── models/
+│   │   ├── schemas/
+│   │   ├── services/
+│   │   └── main.py
+│   ├── alembic/
+│   │   └── versions/
+│   ├── tests/
+│   ├── .env.example
+│   ├── alembic.ini
+│   └── requirements.txt (not included)
+│
 ├── frontend/
 │   ├── lib/
-│   │   ├── core/api/         # API base configuration and HTTP client
-│   │   ├── core/router/      # GoRouter configuration
-│   │   ├── core/layout/      # App layout and sidebar
-│   │   ├── core/theme/       # Application theme
-│   │   ├── dashboard/        # Dashboard BLoC, page, and widgets
-│   │   ├── campaigns/        # Campaign BLoC, models, repository, pages
-│   │   └── offers/           # Offers BLoC, repository, page, and widgets
-│   ├── test/                 # Flutter widget tests
-│   └── pubspec.yaml          # Flutter dependencies
+│   │   ├── core/
+│   │   │   ├── api/
+│   │   │   ├── router/
+│   │   │   ├── layout/
+│   │   │   └── theme/
+│   │   ├── dashboard/
+│   │   ├── campaigns/
+│   │   └── offers/
+│   ├── test/
+│   └── pubspec.yaml
+│
 ├── .gitignore
 └── README.md
 ```
 
 ## Prerequisites
 
-- Git.
-- Python 3.9 or newer.
-- Flutter stable.
-- Dart SDK supplied by Flutter.
-- A running Keitaro instance and Keitaro Admin API credentials.
-
-The project currently uses Dart `3.13.3` as declared in `frontend/pubspec.yaml`.
+- Git
+- Python 3.9 or newer
+- Flutter SDK
+- Dart SDK compatible with the constraint in `frontend/pubspec.yaml` (`^3.13.3`)
+- Access to a Keitaro instance
+- Keitaro Admin API credentials
 
 ## Backend Setup
 
-Run commands from the project root:
+Run the following commands from the project root.
+
+### 1. Navigate to the backend
 
 ```bash
 cd backend
+```
+
+### 2. Create a virtual environment
+
+```bash
 python3 -m venv .venv
+```
+
+Activate it:
+
+macOS / Linux:
+
+```bash
 source .venv/bin/activate
+```
+
+Windows:
+
+```bash
+.venv\Scripts\activate
+```
+
+### 3. Install dependencies
+
+```bash
 python -m pip install --upgrade pip
+
 python -m pip install fastapi uvicorn sqlalchemy alembic httpx python-dotenv pydantic pytest
 ```
 
-Create the environment file:
+### 4. Configure environment variables
+
+Create your local environment file:
 
 ```bash
 cp .env.example .env
 ```
 
-Add valid credentials to `.env`, then apply migrations:
+Open `backend/.env` and provide your Keitaro API URL, API key, and backend authentication credentials.
+
+### 5. Apply database migrations
 
 ```bash
 alembic upgrade head
 ```
 
-Start the API:
+### 6. Start the backend
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-The API is available at <http://127.0.0.1:8000>. Swagger is available at <http://127.0.0.1:8000/docs>.
+The backend will be available at:
 
-`backend/app/main.py` is the application entry point used by Uvicorn. `backend/main.py` is a separate, older entry point and is not used by the command above.
+- API: http://127.0.0.1:8000
+- Swagger documentation: http://127.0.0.1:8000/docs
+
+The application entry point is `backend/app/main.py`.
 
 ## Environment Variables
 
-Create `backend/.env` using this format:
+The backend uses the following environment variables:
+
+| Variable | Description |
+|---|---|
+| `KEITARO_BASE_URL` | Keitaro instance URL |
+| `KEITARO_API_KEY` | Keitaro Admin API key |
+| `BACKEND_AUTH_ENABLED` | Enables backend authentication |
+| `BACKEND_AUTH_USERNAME` | Backend login username |
+| `BACKEND_AUTH_PASSWORD` | Backend login password |
+| `CORS_ALLOWED_ORIGINS` | Allowed frontend origins |
+| `TRUST_PROXY` | Enables trusted proxy handling |
+| `RATE_LIMIT_REQUESTS_PER_MINUTE` | General request limit |
+| `RATE_LIMIT_LOGIN_PER_MINUTE` | Login request limit |
+
+Example:
 
 ```dotenv
 KEITARO_BASE_URL=https://example-keitaro-host
 KEITARO_API_KEY=replace-with-your-api-key
+
+BACKEND_AUTH_ENABLED=true
+BACKEND_AUTH_USERNAME=admin
+BACKEND_AUTH_PASSWORD=replace-with-a-long-random-password
+
+CORS_ALLOWED_ORIGINS=http://localhost:8765,http://127.0.0.1:8765
+TRUST_PROXY=false
+
+RATE_LIMIT_REQUESTS_PER_MINUTE=120
+RATE_LIMIT_LOGIN_PER_MINUTE=10
 ```
 
-Required variables:
-
-- `KEITARO_BASE_URL` — base URL of the Keitaro instance.
-- `KEITARO_API_KEY` — Keitaro Admin API key.
-- `BACKEND_AUTH_ENABLED` — Set `true` to require login for backend operations.
-- `BACKEND_AUTH_USERNAME` — Backend login username.
-- `BACKEND_AUTH_PASSWORD` — Backend login password.
-- `CORS_ALLOWED_ORIGINS` — Comma-separated frontend origins.
-- `TRUST_PROXY` — Set `true` only behind a trusted reverse proxy.
-- `RATE_LIMIT_REQUESTS_PER_MINUTE` — General per-IP request limit.
-- `RATE_LIMIT_LOGIN_PER_MINUTE` — Login attempt limit.
-
-Never commit real credentials.
+Never commit real credentials or `.env` files to Git.
 
 ## Frontend Setup
 
-Run commands from the project root:
+Open a second terminal.
+
+### 1. Navigate to the frontend
 
 ```bash
 cd frontend
+```
+
+### 2. Install Flutter dependencies
+
+```bash
 flutter pub get
+```
+
+### 3. Run the application
+
+```bash
 flutter run -d chrome --web-port 8765
 ```
 
-The default backend address is `http://127.0.0.1:8000`, defined in `lib/core/api/api_config.dart`.
+The frontend will be available at:
 
-To use another address:
+http://localhost:8765
+
+The default backend URL is:
+
+```text
+http://127.0.0.1:8000
+```
+
+It is configured in:
+
+```text
+frontend/lib/core/api/api_config.dart
+```
+
+To specify another backend URL:
 
 ```bash
-flutter run -d chrome --web-port 8765 \
+flutter run -d chrome \
+  --web-port 8765 \
   --dart-define=API_BASE_URL=http://127.0.0.1:8000
 ```
 
-For a release build:
+To build the production web application:
 
 ```bash
 flutter build web
 ```
 
-The Flutter app opens FastAPI routes only. It never calls the Keitaro Admin API directly.
+The Flutter frontend communicates only with FastAPI. It does not call the Keitaro Admin API directly.
 
 ## Database Migrations
 
-The local SQLAlchemy database is SQLite at `backend/keitaro.db`. The database URL is configured in both `app/core/database.py` and `alembic.ini`.
+The project uses SQLite with SQLAlchemy.
 
-Run migration commands from `backend/`:
+The local database file is:
+
+```text
+backend/keitaro.db
+```
+
+Run migration commands from the `backend/` directory.
+
+Apply migrations:
 
 ```bash
 alembic upgrade head
+```
+
+Check the current migration:
+
+```bash
 alembic current
+```
+
+View migration history:
+
+```bash
 alembic history
 ```
 
-The initial migration creates the `campaigns` table. It is located at:
-
-```text
-backend/alembic/versions/f1b62a6778d8_create_campaigns_table.py
-```
-
-To generate a new migration after model changes:
+Generate a migration after changing SQLAlchemy models:
 
 ```bash
 alembic revision --autogenerate -m "describe change"
 ```
 
+The initial migration creates the local `campaigns` table.
+
+Migration files are stored in:
+
+```text
+backend/alembic/versions/
+```
+
 ## API Overview
+
+The backend exposes the following API routes.
 
 ### Health
 
-| Method | Path | Purpose |
+| Method | Endpoint | Description |
 |---|---|---|
 | GET | `/health` | Backend health check |
-| GET | `/` | API status message |
+| GET | `/` | API status |
 
-### Local campaign storage
+### Local Campaign Storage
 
-| Method | Path | Purpose |
+| Method | Endpoint | Description |
 |---|---|---|
-| GET | `/campaigns/` | List local SQLAlchemy campaigns |
+| GET | `/campaigns/` | Get locally stored campaigns |
 | POST | `/campaigns/` | Create a local campaign record |
-| PUT | `/campaigns/{campaign_id}` | Update a local campaign record |
-| DELETE | `/campaigns/{campaign_id}` | Delete a local campaign record |
+| PUT | `/campaigns/{campaign_id}` | Update a local campaign |
+| DELETE | `/campaigns/{campaign_id}` | Delete a local campaign |
 
-### Keitaro campaigns
+### Keitaro Campaigns
 
-| Method | Path | Purpose |
+| Method | Endpoint | Description |
 |---|---|---|
-| GET | `/keitaro/campaigns` | List Keitaro campaigns |
+| GET | `/keitaro/campaigns` | Get Keitaro campaigns |
 | POST | `/keitaro/campaigns` | Create a Keitaro campaign |
-
-### Keitaro options
-
-| Method | Path | Purpose |
-|---|---|---|
 | GET | `/keitaro/options` | Get domains, groups, traffic sources, and offers |
+
+### Streams
+
+| Method | Endpoint | Description |
+|---|---|---|
 | GET | `/keitaro/stream-actions` | Get available stream actions |
 | GET | `/keitaro/stream-filters` | Get available stream filters |
-
-### Streams and offers
-
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/keitaro/campaigns/{campaign_id}/streams` | List campaign streams |
-| POST | `/keitaro/campaigns/{campaign_id}/streams` | Create a campaign stream |
-| GET | `/keitaro/streams/{stream_id}` | Get a stream |
+| GET | `/keitaro/campaigns/{campaign_id}/streams` | Get campaign streams |
+| POST | `/keitaro/campaigns/{campaign_id}/streams` | Create a stream |
+| GET | `/keitaro/streams/{stream_id}` | Get stream details |
 | PUT | `/keitaro/streams/{stream_id}` | Update stream properties |
-| PUT | `/keitaro/streams/{stream_id}/offers` | Replace the stream offer list |
+| PUT | `/keitaro/streams/{stream_id}/offers` | Update stream offers |
 | DELETE | `/keitaro/streams/{stream_id}` | Delete a stream |
 
-The `/keitaro/streams/{stream_id}/offers` endpoint expects:
+### Offer Update Example
+
+The stream offers endpoint accepts an offer list:
 
 ```json
 {
@@ -276,55 +380,64 @@ The `/keitaro/streams/{stream_id}/offers` endpoint expects:
 
 ## Architecture
 
-### Backend
+### Backend Responsibilities
 
-- `app/api/routes/` defines HTTP endpoints and Pydantic validation.
-- `app/services/keitaro_service.py` communicates with Keitaro Admin API.
-- `app/models/` contains SQLAlchemy entities.
-- `app/schemas/` contains local Pydantic request/response models.
-- `app/core/database.py` creates the SQLite engine and sessions.
+- FastAPI handles HTTP requests.
+- Pydantic validates incoming data.
+- SQLAlchemy manages local database operations.
 - Alembic manages database migrations.
+- The Keitaro service communicates with the Keitaro Admin API.
+- Authentication and rate limiting protect backend endpoints.
 
-### Frontend
+### Frontend Responsibilities
 
-- Pages compose reusable widgets.
-- Widgets display UI and local form state.
-- BLoCs handle events and application states.
-- Repositories perform backend operations.
-- Models parse typed API data.
-- `ApiClient` centralizes HTTP requests and JSON/error handling.
+- Flutter builds the web interface.
+- BLoC manages application state.
+- Repositories handle data operations.
+- Models parse API responses.
+- ApiClient centralizes HTTP requests and error handling.
+- GoRouter manages navigation.
 
-Flutter → FastAPI → Keitaro Admin API:
+### Request Flow
 
 ```text
+User
+  |
+  v
 Flutter Web
-    ↓
-FastAPI backend
-    ↓
+  |
+  v
+FastAPI Backend
+  |
+  +----> SQLite Database
+  |
+  v
 Keitaro Admin API
 ```
 
+The Keitaro API key remains on the backend and is never placed in Flutter code.
+
 ## Testing
 
-### Backend tests
+### Backend Tests
 
-From `backend/`:
+Run from the `backend/` directory:
 
 ```bash
 .venv/bin/python -m pytest -q
 ```
 
-The existing tests use mocked FastAPI route behavior and cover campaign, options, stream, offer, validation, and CORS paths.
+The backend tests cover API routes and validation using mocked behavior.
 
-### Backend syntax
+### Backend Syntax Check
 
 ```bash
 python -m compileall -q app main.py tests
 ```
 
-### Frontend checks
+### Frontend Checks
 
-From `frontend/`:
+Run from the `frontend/` directory:
 
 ```bash
 flutter pub get
@@ -334,18 +447,55 @@ flutter test
 flutter build web
 ```
 
-## Security Notes
+## Security
 
-- Do not commit `backend/.env`.
-- Do not place `KEITARO_API_KEY` in Flutter code or Dart define values.
-- Keep Keitaro credentials only in the backend environment.
-- Use FastAPI as the proxy to the Keitaro Admin API.
-- Do not expose API keys in logs or API error responses.
-- CORS is restricted to the configured local Flutter origins and credentials are disabled.
-- Do not run campaign, stream, or offer mutations against live data without explicit approval.
+The project includes the following security measures:
+
+- Backend authentication.
+- Bearer-token authentication for protected operations.
+- Request rate limiting.
+- Configurable CORS origins.
+- Pydantic request validation.
+- Sanitized upstream API errors.
+- Keitaro credentials stored in backend environment variables.
+- `.env` and local database files excluded from Git.
+
+Do not expose API keys in frontend code, logs, public repositories, or API responses.
+
+Do not perform campaign, stream, or offer mutations against live Keitaro data without authorization.
 
 ## Current Status
 
-The campaign dashboard, campaign creation flow, campaign editor, stream offer management, offers page, and real backend integration are implemented.
+Implemented:
 
-Campaign creation and share updates have been verified against live Keitaro during development. Separate offer-addition and offer-removal scenarios against live Keitaro may require additional manual approval and are not declared fully verified.
+- Campaign dashboard and listing.
+- Campaign creation.
+- GEO filtering and redirect stream configuration.
+- Selected offer stream creation.
+- Domain, group, and traffic source selection.
+- Campaign editor.
+- Offer list and share editing.
+- Backend and frontend integration.
+- Local database and migrations.
+- Backend authentication and rate limiting.
+
+Verified during development:
+
+- Campaign creation against live Keitaro.
+- Stream creation and configuration.
+- Offer share updates.
+- Backend tests.
+- Flutter analysis and tests.
+- Flutter web build.
+
+Additional live testing:
+
+- Offer addition and removal against a live Keitaro instance require another available offer and have not yet been fully verified.
+
+## Future Improvements
+
+- Expand integration testing against live Keitaro.
+- Add more automated tests for offer management.
+- Improve error reporting and user feedback.
+- Add more comprehensive deployment documentation.
+- Add CI/CD automation.
